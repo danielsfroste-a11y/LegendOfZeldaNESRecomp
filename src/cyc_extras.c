@@ -137,8 +137,12 @@ static void presentation_state(int id,const char *line) {
         (unsigned long long)nes_voxel_retained_bytes());
     cyc_tcp_ok(id,out);
 }
+#include "zelda_unreal_tcp.inc"
+
 static void tcp_setup(void *ctx) {
-    (void)ctx;cyc_tcp_register("zelda_state","Guest state and voxel view",state);
+    (void)ctx;cyc_tcp_register("zelda_unreal_frame","Coherent room and entity snapshot",zelda_unreal_frame);
+    cyc_tcp_register("zelda_unreal_room","Adjacent isolated terrain",zelda_unreal_room);
+    cyc_tcp_register("zelda_state","Guest state and voxel view",state);
     cyc_tcp_register("entity_snapshot","Original Zelda entity slots",entities);
     cyc_tcp_register("entity_slot","Detailed original entity slot",entity);
     cyc_tcp_register("zelda_presentation","Prepared picture revisions and reuse counters",presentation_state);
