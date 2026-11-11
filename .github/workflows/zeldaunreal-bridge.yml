@@ -3,7 +3,7 @@ name: ZeldaUnreal bridge smoke (ROM-free)
 on:
   push:
     branches: ["feature/zeldaunreal-bridge-tests"]
-  pull_request:
+  # Push-only to avoid duplicate workflow runs for same-repository PRs.
   workflow_dispatch:
 
 permissions:
