@@ -175,6 +175,28 @@ static bool decode_to(unsigned id,WorldRoom *room) {
     cyc_mod_isolate_end();return ok;
 }
 bool zelda_world_decode_room(unsigned id) {return id<128&&decode_to(id,&rooms[id]);}
+
+/* Non-mutating atlas export: decode the original ROM into CALLER-owned buffers.
+ * This deliberately avoids the global rooms[] cache, including any seamless
+ * room whose simulation_ready flag means its terrain is dynamic gameplay data.
+ * The isolated guest call restores the active machine/mapper/PPU state.
+ * No sprite simulation, ownership refresh or scene cache updates are performed.
+ */
+bool zelda_world_export_static_room(unsigned id,
+                                    uint8_t tiles[ZW_TILE_COUNT],
+                                    uint8_t attrs[ZW_ATTR_COUNT]) {
+    if(id>=ROOMS||!tiles||!attrs||!zelda_world_supported())return false;
+    if(!cyc_mod_isolate_begin())return false;
+    bool ok=call(0xffac,5) && cyc_mod_poke(0xeb,(uint8_t)id) &&
+            cyc_mod_poke(0xee,0) && call(0xa8c4,0) && call(0x83d7,(uint8_t)id);
+    if(ok) {
+        for(int i=0;i<ZW_TILE_COUNT;i++)tiles[i]=cyc_mod_peek((uint16_t)(0x6530+i));
+        for(int i=0;i<ZW_ATTR_COUNT;i++)attrs[i]=cyc_mod_peek((uint16_t)(0x530+i));
+    }
+    cyc_mod_isolate_end();
+    return ok;
+}
+
 static unsigned door(unsigned id,unsigned direction) {
     unsigned a=cyc_mod_peek((uint16_t)(0x687e + id)),b=cyc_mod_peek((uint16_t)(0x68fe + id));
     if(direction==1)return (b>>2)&7;if(direction==2)return (b>>5)&7;
