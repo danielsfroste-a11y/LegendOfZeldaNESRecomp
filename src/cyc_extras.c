@@ -142,6 +142,7 @@ static void presentation_state(int id,const char *line) {
 static void tcp_setup(void *ctx) {
     (void)ctx;cyc_tcp_register("zelda_unreal_frame","Coherent room and entity snapshot",zelda_unreal_frame);
     cyc_tcp_register("zelda_unreal_room","Adjacent isolated terrain",zelda_unreal_room);
+    cyc_tcp_register("zelda_unreal_atlas_room","Isolated static overworld room export",zelda_unreal_atlas_room);
     cyc_tcp_register("zelda_state","Guest state and voxel view",state);
     cyc_tcp_register("entity_snapshot","Original Zelda entity slots",entities);
     cyc_tcp_register("entity_slot","Detailed original entity slot",entity);

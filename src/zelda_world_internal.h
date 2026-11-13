@@ -11,6 +11,10 @@ typedef struct {
 } ZeldaWorldRoom;
 extern ZeldaWorldRoom zelda_world_rooms[ZW_ROOM_COUNT];
 bool zelda_world_decode_room(unsigned room);
+/* Read-only isolated original-ROM terrain export; never touches visual room cache. */
+bool zelda_world_export_static_room(unsigned room,
+                                    uint8_t tiles[ZW_TILE_COUNT],
+                                    uint8_t attrs[ZW_ATTR_COUNT]);
 void zelda_world_refresh(void);
 bool zelda_world_live(void);
 bool zelda_world_supported(void);

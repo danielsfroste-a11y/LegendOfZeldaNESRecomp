@@ -132,4 +132,61 @@ static void zelda_unreal_room(int id, const char *line)
     fields[used] = '\0';
     cyc_tcp_ok(id, fields);
 }
+
+/* Atlas v1: a DIFFERENT endpoint from adjacent live-room prefetch.
+ * Uses a caller-owned temporary buffer from isolated original-ROM execution.
+ * Never writes global zelda_world_rooms or starts enemy simulation.
+ */
+static void zelda_unreal_atlas_room(int id, const char *line)
+{
+    if (g_ram[0x12] != 5 || g_ram[0x10] != 0) {
+        cyc_tcp_err(id, "zelda_unreal_atlas_room: overworld mode 5 required");
+        return;
+    }
+    long requested = -1;
+    if (!cyc_tcp_long(line, "room", &requested) || requested < 0 || requested >= 128) {
+        cyc_tcp_err(id, "zelda_unreal_atlas_room: room 0..127 required");
+        return;
+    }
+    unsigned char tiles[ZW_TILE_COUNT], attrs[ZW_ATTR_COUNT];
+    if (!zelda_world_supported() ||
+        !zelda_world_export_static_room((unsigned)requested, tiles, attrs)) {
+        cyc_tcp_err(id, "zelda_unreal_atlas_room: isolated static ROM decode failed");
+        return;
+    }
+    static const char hex[] = "0123456789ABCDEF";
+    unsigned slot = (unsigned)g_ram[0x16];
+    unsigned quest = (unsigned)g_ram[0x62d + (slot < 3 ? slot : 0)];
+    char fields[2048];
+    int n = snprintf(fields, sizeof(fields),
+        "\"schema\":3,\"atlas_schema\":1,\"source\":\"isolated-static-decoder\","
+        "\"rom_prg_crc32\":\"3FE272FB\",\"room\":%lu,"
+        "\"quest_id\":%u,\"profile_slot\":%u,"
+        "\"first_unwalkable\":%u,\"tiles_hex\":\"",
+        (unsigned long)requested, quest, slot, (unsigned)g_ram[0x34a]);
+    if (n < 0 || (size_t)n + 2 * (ZW_TILE_COUNT + ZW_ATTR_COUNT) + 20 >= sizeof(fields)) {
+        cyc_tcp_err(id, "zelda_unreal_atlas_room: formatting buffer insufficient");
+        return;
+    }
+    size_t used = (size_t)n;
+    for (int i = 0; i < ZW_TILE_COUNT; ++i) {
+        unsigned char value = tiles[i];
+        fields[used++] = hex[value >> 4];
+        fields[used++] = hex[value & 15];
+    }
+    n = snprintf(fields + used, sizeof(fields) - used, "\",\"attrs_hex\":\"");
+    if (n < 0 || (size_t)n >= sizeof(fields) - used) {
+        cyc_tcp_err(id, "zelda_unreal_atlas_room: attrs buffer overflow");
+        return;
+    }
+    used += (size_t)n;
+    for (int i = 0; i < ZW_ATTR_COUNT; ++i) {
+        unsigned char value = attrs[i];
+        fields[used++] = hex[value >> 4];
+        fields[used++] = hex[value & 15];
+    }
+    fields[used++] = '"';
+    fields[used] = '\0';
+    cyc_tcp_ok(id, fields);
+}
 /* ZELDAUNREAL_TCP_EXTENSION_END */
